@@ -1,5 +1,6 @@
 package com.courrouxdigital.focustimerapp.presentation.home
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,17 +14,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.courrouxdigital.focustimerapp.R
+import com.courrouxdigital.focustimerapp.domain.model.TimerTypeEnum
 import com.courrouxdigital.focustimerapp.presentation.components.AutoResizedText
 import com.courrouxdigital.focustimerapp.presentation.components.BorderedIcon
 import com.courrouxdigital.focustimerapp.presentation.components.CircleDot
@@ -33,7 +38,13 @@ import com.courrouxdigital.focustimerapp.presentation.components.TimerTypeItem
 import com.courrouxdigital.focustimerapp.presentation.theme.FocusTimerAppTheme
 
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier) {
+fun HomeScreen(
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = HomeViewModel(),
+) {
+
+    val uiState by viewModel.uiState.collectAsState()
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -72,11 +83,24 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(FocusTimerAppTheme.dimens.spacerMedium))
 
-        TimerSessionView(timer = "05:00", onIncreasedTap = {}, onDecreasedTap = {})
+        TimerSessionView(
+            timer = viewModel.millisToMinutes(uiState.timerValue),
+            onIncreasedTap = {
+                viewModel.onIncreaseTime()
+            },
+            onDecreasedTap = {
+                viewModel.onDecreaseTime()
+            }
+        )
 
         Spacer(modifier = Modifier.height(FocusTimerAppTheme.dimens.spacerMedium))
 
-        TimerTypeSessionView(onTap = {})
+        TimerTypeSessionView(
+            timerType = uiState.timerType,
+            onTap = { type ->
+                viewModel.onUpdateType(type)
+            }
+        )
 
         Spacer(modifier = Modifier.height(FocusTimerAppTheme.dimens.spacerMedium))
 
@@ -89,13 +113,17 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 text = "Start",
                 textColor = MaterialTheme.colorScheme.surface,
                 buttonColor = MaterialTheme.colorScheme.primary,
-                onTap = {}
+                onTap = {
+                    viewModel.onStartTimer()
+                }
             )
             CustomButton(
                 text = "Reset",
                 textColor = MaterialTheme.colorScheme.primary,
                 buttonColor = MaterialTheme.colorScheme.surface,
-                onTap = {}
+                onTap = {
+                    viewModel.onCancelTimer(true)
+                }
             )
         }
 
@@ -103,8 +131,8 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
         InformationSessionView(
             modifier = Modifier.weight(1f),
-            round = "10",
-            time = "20:00"
+            round = uiState.rounds.toString(),
+            time = viewModel.millisToHours(uiState.todayTime)
         )
     }
 }
@@ -127,7 +155,7 @@ private fun TimerSessionView(
                 .weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            BorderedIcon(icon = R.drawable.ic_minus, onTap = onDecreasedTap)
+            BorderedIcon(icon = R.drawable.ic_minus, onTap = { onDecreasedTap() })
             Spacer(modifier.height(FocusTimerAppTheme.dimens.spacerMedium))
         }
         AutoResizedText(
@@ -146,7 +174,7 @@ private fun TimerSessionView(
                 .weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            BorderedIcon(icon = R.drawable.ic_plus, onTap = onIncreasedTap)
+            BorderedIcon(icon = R.drawable.ic_plus, onTap = { onIncreasedTap() })
             Spacer(modifier.height(FocusTimerAppTheme.dimens.spacerMedium))
         }
     }
@@ -155,7 +183,8 @@ private fun TimerSessionView(
 @Composable
 private fun TimerTypeSessionView(
     modifier: Modifier = Modifier,
-    onTap: () -> Unit = {},
+    timerType: TimerTypeEnum,
+    onTap: (TimerTypeEnum) -> Unit = {},
 ) {
     val gridCount = 3
     val itemSpacing = Arrangement.spacedBy(FocusTimerAppTheme.dimens.paddingNormal)
@@ -168,19 +197,15 @@ private fun TimerTypeSessionView(
         horizontalArrangement = itemSpacing,
         verticalArrangement = itemSpacing
     ) {
-        item(key = "FT") {
+        items(
+            TimerTypeEnum.entries,
+            key = { it.title }
+        ) {
             TimerTypeItem(
-                text = "Focus Timer", textColor = MaterialTheme.colorScheme.primary
-            )
-        }
-        item(key = "SB") {
-            TimerTypeItem(
-                text = "Short Break", textColor = MaterialTheme.colorScheme.secondary
-            )
-        }
-        item(key = "LB") {
-            TimerTypeItem(
-                text = "Long Break", textColor = MaterialTheme.colorScheme.secondary
+                text = it.title,
+                textColor = if (timerType == it) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.secondary,
+                onTap = { onTap(it) }
             )
         }
     }
@@ -206,9 +231,11 @@ private fun InformationSessionView(
                 text = round,
                 label = "rounds"
             )
-            Spacer(modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f))
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            )
             InformationItem(
                 modifier = Modifier
                     .fillMaxWidth()

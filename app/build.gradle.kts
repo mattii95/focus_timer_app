@@ -52,6 +52,8 @@ dependencies {
 
     // Provides window size classes for building responsive UIs
     implementation(libs.androidx.compose.material3.window.size.class1)
+    // ViewModel utilities for Compose
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

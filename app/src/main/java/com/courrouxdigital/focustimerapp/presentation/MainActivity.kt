@@ -14,7 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.courrouxdigital.focustimerapp.presentation.home.HomeScreen
+import com.courrouxdigital.focustimerapp.presentation.home.HomeViewModel
 import com.courrouxdigital.focustimerapp.presentation.theme.FocusTimerAppTheme
+
+internal val viewModel: HomeViewModel = HomeViewModel()
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -25,7 +28,10 @@ class MainActivity : ComponentActivity() {
             val windowSize = calculateWindowSizeClass(activity = this)
             FocusTimerAppTheme(windowSize = windowSize.widthSizeClass) {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    HomeScreen(modifier = Modifier.padding(innerPadding))
+                    HomeScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        viewModel = viewModel
+                    )
                 }
             }
         }

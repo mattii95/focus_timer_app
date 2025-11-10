@@ -31,7 +31,7 @@ fun BorderedIcon(
                 shape = CircleShape
             )
             .padding(FocusTimerAppTheme.dimens.paddingSmall)
-            .clickable { onTap },
+            .clickable { onTap() },
         imageVector = ImageVector.vectorResource(id = icon),
         contentDescription = null,
         tint = MaterialTheme.colorScheme.primary
