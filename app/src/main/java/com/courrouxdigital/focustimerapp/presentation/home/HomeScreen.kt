@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.courrouxdigital.focustimerapp.R
 import com.courrouxdigital.focustimerapp.domain.model.TimerTypeEnum
 import com.courrouxdigital.focustimerapp.presentation.components.AutoResizedText
@@ -40,7 +41,7 @@ import com.courrouxdigital.focustimerapp.presentation.theme.FocusTimerAppTheme
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = HomeViewModel(),
+    viewModel: HomeViewModel = hiltViewModel(),
 ) {
 
     val uiState by viewModel.uiState.collectAsState()
