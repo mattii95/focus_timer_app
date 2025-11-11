@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -28,6 +29,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.courrouxdigital.focustimerapp.R
 import com.courrouxdigital.focustimerapp.domain.model.TimerTypeEnum
 import com.courrouxdigital.focustimerapp.presentation.components.AutoResizedText
@@ -45,6 +50,14 @@ fun HomeScreen(
 ) {
 
     val uiState by viewModel.uiState.collectAsState()
+    
+    val lifeCycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(viewModel) {
+        lifeCycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.getTimerSessionByDate()
+        }
+    }
+
 
     Column(
         modifier = modifier

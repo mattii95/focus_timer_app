@@ -5,19 +5,31 @@ import android.os.CountDownTimer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.courrouxdigital.focustimerapp.core.Constants
+import com.courrouxdigital.focustimerapp.domain.model.Resource
+import com.courrouxdigital.focustimerapp.domain.model.TimerSession
 import com.courrouxdigital.focustimerapp.domain.model.TimerTypeEnum
+import com.courrouxdigital.focustimerapp.domain.usecase.GetTimerSessionByDateUseCase
+import com.courrouxdigital.focustimerapp.domain.usecase.SaveTimerSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
-class HomeViewModel @Inject constructor() : ViewModel() {
+class HomeViewModel @Inject constructor(
+    private val saveTimerSessionUseCase: SaveTimerSessionUseCase,
+    private val getTimerSessionByDateUseCase: GetTimerSessionByDateUseCase
+) : ViewModel() {
     private lateinit var timer: CountDownTimer
     private var isTimerActive: Boolean = false
+    private var _sessionTimerValue: Long = 0
 
     private val _uiState = MutableStateFlow(UIState())
     val uiState: StateFlow<UIState> = _uiState.asStateFlow()
@@ -34,6 +46,7 @@ class HomeViewModel @Inject constructor() : ViewModel() {
                         timerValue = millisUntilFinished,
                         todayTime = it.todayTime + Constants.ONE_SEC_IN_MILLIS
                     ) }
+                    _sessionTimerValue +=  Constants.ONE_SEC_IN_MILLIS
                 }
 
                 override fun onFinish() {
@@ -42,6 +55,7 @@ class HomeViewModel @Inject constructor() : ViewModel() {
             }
             timer.start().also {
                 if (!isTimerActive) _uiState.update { it.copy(rounds = it.rounds + 1) }
+                _sessionTimerValue = 0
                 isTimerActive = true
             }
         }
@@ -49,6 +63,7 @@ class HomeViewModel @Inject constructor() : ViewModel() {
 
     fun onCancelTimer(reset: Boolean = false) {
         try {
+            saveTimerSession()
             timer.cancel()
         } catch (_: UninitializedPropertyAccessException) {
             // timer error
@@ -77,11 +92,43 @@ class HomeViewModel @Inject constructor() : ViewModel() {
         }
     }
 
+    fun getTimerSessionByDate() {
+        getTimerSessionByDateUseCase(date = getCurrentDate()).onEach { result ->
+            if (result is Resource.Success) {
+                _uiState.update { it.copy(
+                    rounds = result.data?.round ?: 0,
+                    todayTime = result.data?.value ?: 0
+                ) }
+            }
+        }.launchIn(viewModelScope)
+    }
+
+    private fun saveTimerSession() {
+        val session = TimerSession(
+            date = getCurrentDate(),
+            value = _sessionTimerValue
+        )
+        saveTimerSessionUseCase(timerSession = session).onEach { result ->
+            when(result) {
+                is Resource.Success -> { }
+                is Resource.Loading -> { }
+                is Resource.Error -> { }
+            }
+        }.launchIn(viewModelScope)
+    }
+
     private fun onResetTimer() {
         if (isTimerActive) {
             onCancelTimer()
             onStartTimer()
         }
+    }
+
+    @SuppressLint("SimpleDateFormat")
+    private fun getCurrentDate(): String {
+        val currentDate = Calendar.getInstance().time
+        val dateFormat = SimpleDateFormat("dd-MM-yyyy")
+        return dateFormat.format(currentDate)
     }
 
     @SuppressLint("DefaultLocale")
